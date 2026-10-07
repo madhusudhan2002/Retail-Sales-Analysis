@@ -5,7 +5,9 @@ from project1_retail_sales.analysis import (
     rfm_analysis
 )
 
-from project1_retail_sales.statistics_analysis import t_test_weekend_sales
+from project1_retail_sales.statistics_analysis import (
+    t_test_weekend_sales
+)
 
 from project1_retail_sales.modeling import (
     churn_prediction,
@@ -25,132 +27,230 @@ from project1_retail_sales.visualization import (
     plot_feature_importance
 )
 
-from project1_retail_sales.executive_summary import generate_executive_summary
+from project1_retail_sales.executive_summary import (
+    generate_executive_summary
+)
 
 
 def main():
 
-    print("\nLOADING DATA...")
-    df = load_data("project1_retail_sales/data/retail_sales.csv")
+    # =================================================
+    # 1. LOAD DATA
+    # =================================================
 
-    print("Performing Feature Engineering...")
+    print("\n" + "=" * 60)
+    print("LOADING DATA")
+    print("=" * 60)
+
+    df = load_data(
+        "project1_retail_sales/data/retail_sales.csv"
+    )
+
+    print(f"Rows: {len(df):,}")
+    print(f"Columns: {len(df.columns)}")
+
+    print(
+        f"Unique Customers: "
+        f"{df['CustomerID'].nunique():,}"
+    )
+
+    print(
+        f"Unique Orders: "
+        f"{df['OrderID'].nunique():,}"
+    )
+
+    print(
+        f"Unique Products: "
+        f"{df['Product'].nunique():,}"
+    )
+
+    print(
+        f"Date Range: "
+        f"{df['OrderDate'].min().date()} "
+        f"to "
+        f"{df['OrderDate'].max().date()}"
+    )
+
+
+    # =================================================
+    # 2. FEATURE ENGINEERING
+    # =================================================
+
+    print("\n" + "=" * 60)
+    print("PERFORMING FEATURE ENGINEERING")
+    print("=" * 60)
+
     df = advanced_feature_engineering(df)
 
-    # -------------------------------------------------
-    # PIVOT TABLE
-    # -------------------------------------------------
-    pivot = region_category_pivot(df)
-    print("\nRegion-Category Pivot Table:\n", pivot)
+    print(
+        f"Feature-engineered dataset shape: "
+        f"{df.shape}"
+    )
 
-    # -------------------------------------------------
-    # STATISTICAL ANALYSIS
-    # -------------------------------------------------
+
+    # =================================================
+    # 3. REGION × CATEGORY PIVOT
+    # =================================================
+
+    print("\n" + "=" * 60)
+    print("REGION × CATEGORY ANALYSIS")
+    print("=" * 60)
+
+    pivot = region_category_pivot(df)
+
+    print("\nRegion-Category Sales:")
+    print(pivot)
+
+
+    # =================================================
+    # 4. STATISTICAL ANALYSIS
+    # =================================================
+
+    print("\n" + "=" * 60)
+    print("STATISTICAL ANALYSIS")
+    print("=" * 60)
+
     stats_results = t_test_weekend_sales(df)
 
-    print("\nSTATISTICAL TEST RESULTS")
-    print("=" * 40)
-
     if "error" in stats_results:
-        print(stats_results["error"])
+        print(
+            "Statistical analysis error:",
+            stats_results["error"]
+        )
+
     else:
         for key, value in stats_results.items():
             print(f"{key}: {value}")
 
-    # -------------------------------------------------
-    # BASIC VISUALIZATIONS
-    # -------------------------------------------------
-    monthly_sales = df.resample('M', on='OrderDate')['Sales'].sum()
-    category_sales = df.groupby('Category')['Sales'].sum()
+
+    # =================================================
+    # 5. SALES SUMMARIES
+    # =================================================
+
+    print("\n" + "=" * 60)
+    print("SALES SUMMARY")
+    print("=" * 60)
+
+    monthly_sales = (
+        df.resample(
+            "ME",
+            on="OrderDate"
+        )["Sales"]
+        .sum()
+    )
+
+    category_sales = (
+        df.groupby("Category")["Sales"]
+        .sum()
+        .sort_values(ascending=False)
+    )
+
+    print("\nTotal Revenue:")
+    print(f"${df['Sales'].sum():,.2f}")
+
+    print("\nCategory Sales:")
+    print(category_sales)
+
+    print("\nMonthly Sales:")
+    print(monthly_sales)
+
+
+    # =================================================
+    # 6. VISUALIZATIONS
+    # =================================================
+
+    print("\n" + "=" * 60)
+    print("GENERATING VISUALIZATIONS")
+    print("=" * 60)
 
     plot_monthly_sales(monthly_sales)
+
     plot_category_sales(category_sales)
+
     plot_correlation_heatmap(df)
+
     plot_sales_distribution(df)
+
     plot_sales_boxplot(df)
+
     plot_pivot_heatmap(pivot)
 
-    # -------------------------------------------------
-    # RFM ANALYSIS
-    # -------------------------------------------------
+
+    # =================================================
+    # 7. RFM ANALYSIS
+    # =================================================
+
+    print("\n" + "=" * 60)
+    print("RFM ANALYSIS")
+    print("=" * 60)
+
     rfm = rfm_analysis(df)
-    print("\nRFM Size:", len(rfm))
+
+    print(
+        f"Customers analyzed: {len(rfm):,}"
+    )
+
+    print("\nTop RFM Customers:")
+
+    print(
+        rfm.sort_values(
+            "RFM_Score",
+            ascending=False
+        ).head(10)
+    )
+
+
+    # =================================================
+    # 8. MACHINE LEARNING
+    # =================================================
+
+    print("\n" + "=" * 60)
+    print("MACHINE LEARNING")
+    print("=" * 60)
+
+    print(
+        "\nNOTE:"
+        "\nThe current churn model will be replaced"
+        "\nwith a proper future-based churn definition."
+        "\nML training is temporarily disabled."
+    )
+
+    logistic_results = {
+        "error": "Churn model temporarily disabled - target leakage will be fixed in the next step."
+    }
+
+    rf_results = {
+        "error": "Churn model temporarily disabled - target leakage will be fixed in the next step."
+    }
 
     # -------------------------------------------------
-    # MACHINE LEARNING MODELS
+    # Sales regression
     # -------------------------------------------------
-    print("\nTRAINING LOGISTIC REGRESSION...")
-    logistic_results = churn_prediction(rfm)
 
-    print("\nTRAINING RANDOM FOREST...")
-    rf_results = random_forest_churn(rfm)
+    print("\nTraining Sales Regression Model...")
 
-    print("\nTRAINING REGRESSION MODEL...")
     reg_results = sales_regression_model(df)
 
-    # -------------------------------------------------
-    # MODEL COMPARISON
-    # -------------------------------------------------
-    print("\nMODEL COMPARISON")
-    print("=" * 30)
 
-    if "error" in logistic_results:
-        print("Logistic Model Skipped:", logistic_results["error"])
-    else:
-        print(f"Logistic ROC-AUC: {logistic_results['roc_auc']:.3f}")
+    # =================================================
+    # 9. EXECUTIVE SUMMARY
+    # =================================================
 
-    if "error" in rf_results:
-        print("Random Forest Model Skipped:", rf_results["error"])
-    else:
-        print(f"Random Forest ROC-AUC: {rf_results['roc_auc']:.3f}")
+    print("\n" + "=" * 60)
+    print("EXECUTIVE SUMMARY")
+    print("=" * 60)
 
-    if (
-        "error" not in logistic_results and
-        "error" not in rf_results
-    ):
-        if rf_results['roc_auc'] > logistic_results['roc_auc']:
-            print("→ Random Forest performs better.")
-        else:
-            print("→ Logistic Regression performs better.")
-
-    # -------------------------------------------------
-    # ML VISUALIZATION
-    # -------------------------------------------------
-    if "error" not in logistic_results:
-        plot_roc_curve(
-            logistic_results["y_test"],
-            logistic_results["y_probs"]
-        )
-
-    if "error" not in rf_results:
-        plot_feature_importance(
-            rf_results["feature_importance"]
-        )
-
-    # -------------------------------------------------
-    # SHAP EXPLAINABILITY
-    # -------------------------------------------------
-    if "error" not in rf_results:
-        print("\nRunning SHAP Analysis...")
-        shap_analysis(
-            rf_results["model"],
-            rf_results["X_train"]
-        )
-    else:
-        print("\nSHAP skipped due to insufficient data.")
-
-    # -------------------------------------------------
-    # EXECUTIVE SUMMARY
-    # -------------------------------------------------
     generate_executive_summary(
         df,
         regression_results=reg_results,
-        logistic_results=(
-            None if "error" in logistic_results else logistic_results
-        ),
-        rf_results=(
-            None if "error" in rf_results else rf_results
-        )
+        logistic_results=None,
+        rf_results=None
     )
+
+
+    print("\n" + "=" * 60)
+    print("ANALYSIS COMPLETED")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
